@@ -335,7 +335,8 @@ class SessionManager:
         if runtime == 'gemini':
             for category, models in self.GEMINI_MODELS.items():
                 for model_id, desc, aliases in models:
-                    if name_lower == model_id.lower() or name_lower in [a.lower() for a in aliases]:
+                    aliases_lower = [a.lower() for a in aliases]
+                    if name_lower == model_id.lower() or name_lower in aliases_lower:
                         return model_id
             return None
 
@@ -424,7 +425,8 @@ class SessionManager:
         elif runtime == 'gemini':
             for line in lines:
                 # Skip common Gemini CLI metadata patterns
-                if any(k in line.lower() for k in ['session:', 'model:', 'tokens:', 'usage:']):
+                line_lower = line.lower()
+                if any(k in line_lower for k in ['session:', 'model:', 'tokens:', 'usage:']):
                     continue
                 result.append(line)
 
