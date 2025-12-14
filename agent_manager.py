@@ -647,7 +647,7 @@ class SessionManager:
 
 **Runtime Management:**
   • `/runtime list` - Show available runtimes
-  • `/runtime set <copilot|opencode>` - Switch runtime
+  • `/runtime set <copilot|opencode|claude|gemini>` - Switch runtime
   • `/runtime current` - Show current runtime
 
 **Model Management:**
@@ -664,7 +664,7 @@ class SessionManager:
   • `/session reset` - Reset current session
 
 **Examples:**
-  /runtime set opencode
+  /runtime set gemini
   /model set \"gpt-5.2\"
   /agent set \"family\"
 """
