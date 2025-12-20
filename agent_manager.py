@@ -1080,7 +1080,7 @@ User Request:
             # We check if any file exists with this session ID
             try:
                 for session_file in self.codex_session_dir.glob(
-                    "*/*/*/rollout-**.jsonl"
+                    "*/*/*/rollout-*.jsonl"
                 ):
                     if session_id in session_file.name:
                         return True
