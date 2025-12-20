@@ -10,8 +10,10 @@ import os
 import json
 import subprocess
 import re
+import signal
 from pathlib import Path
 from uuid import uuid4
+
 
 
 # Environment-based configuration
@@ -53,6 +55,10 @@ def get_command_timeout() -> int:
 
 class SessionManager:
     """Manages AI CLI sessions (Copilot & OpenCode) for N8N integration"""
+
+    # Query tracking constants
+    MAX_PROMPT_LENGTH = 200  # Maximum chars to store from prompt
+    MAX_OUTPUT_LENGTH = 500  # Maximum chars to store from output
 
     # Model configurations
     # Note: Claude Code CLI does not support dynamic model listing via flag.
@@ -223,7 +229,7 @@ class SessionManager:
             "pid": pid,
             "runtime": runtime,
             "agent": agent,
-            "prompt": prompt[:200],  # Store first 200 chars of prompt
+            "prompt": prompt[:self.MAX_PROMPT_LENGTH],
             "start_time": time.time(),
             "last_output": "",
         }
@@ -234,7 +240,7 @@ class SessionManager:
         """Update the last output snippet for a running query"""
         queries = self.load_running_queries()
         if n8n_session_id in queries:
-            queries[n8n_session_id]["last_output"] = output_snippet[-500:]  # Last 500 chars
+            queries[n8n_session_id]["last_output"] = output_snippet[-self.MAX_OUTPUT_LENGTH:]
             self.save_running_queries(queries)
 
     def clear_running_query(self, n8n_session_id: str):
@@ -251,10 +257,13 @@ class SessionManager:
         return queries.get(n8n_session_id)
 
     def is_process_running(self, pid: int) -> bool:
-        """Check if a process with given PID is still running"""
+        """Check if a process with given PID is still running
+        
+        Uses os.kill with signal 0 to test process existence without
+        actually sending a signal to the process.
+        """
         try:
-            # Send signal 0 to check if process exists
-            os.kill(pid, 0)
+            os.kill(pid, 0)  # Signal 0 tests existence without affecting the process
             return True
         except OSError:
             return False
@@ -262,7 +271,7 @@ class SessionManager:
     def kill_process(self, pid: int) -> bool:
         """Kill a process with given PID"""
         try:
-            os.kill(pid, 9)  # SIGKILL
+            os.kill(pid, signal.SIGKILL)
             return True
         except OSError as e:
             print(f"[Error] Failed to kill process {pid}: {e}", file=sys.stderr)
