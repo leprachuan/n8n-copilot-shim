@@ -11,6 +11,7 @@ import json
 import subprocess
 import re
 import signal
+import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -59,6 +60,7 @@ class SessionManager:
     # Query tracking constants
     MAX_PROMPT_LENGTH = 200  # Maximum chars to store from prompt
     MAX_OUTPUT_LENGTH = 500  # Maximum chars to store from output
+    MAX_OUTPUT_DISPLAY = 300  # Maximum chars to display in status output
 
     # Model configurations
     # Note: Claude Code CLI does not support dynamic model listing via flag.
@@ -222,8 +224,6 @@ class SessionManager:
         self, n8n_session_id: str, pid: int, runtime: str, agent: str, prompt: str
     ):
         """Track a running query with its PID and session info"""
-        import time
-        
         queries = self.load_running_queries()
         queries[n8n_session_id] = {
             "pid": pid,
@@ -1116,8 +1116,9 @@ User Request:
                 
                 return output
             except subprocess.TimeoutExpired:
-                # Process timed out, kill it
+                # Process timed out, kill it and wait for termination
                 process.kill()
+                process.wait()  # Wait for process to actually terminate
                 timeout_min = timeout / 60
                 return f"Error: Command timed out (exceeded {timeout}s / {timeout_min:.1f}min)"
             finally:
@@ -1604,7 +1605,6 @@ You can mention an agent in your prompt and it will auto-delegate:
                 return "✓ No running query for this session (last query has completed)"
             
             # Process is running - show status
-            import time
             runtime = query_info.get("runtime", "unknown")
             agent = query_info.get("agent", "unknown")
             prompt_snippet = query_info.get("prompt", "")[:100]
@@ -1623,7 +1623,7 @@ You can mention an agent in your prompt and it will auto-delegate:
 **Prompt:** {prompt_snippet}...
 
 **Recent Output:**
-{last_output[-300:] if last_output else "(no output yet)"}
+{last_output[-self.MAX_OUTPUT_DISPLAY:] if last_output else "(no output yet)"}
 """
             return status_msg
 
