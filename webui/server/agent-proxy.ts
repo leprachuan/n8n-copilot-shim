@@ -25,7 +25,6 @@ interface AgentInstance {
   proc: ChildProcess;
   url: string;
   port: number;
-  proxy?: any; // http-proxy-middleware instance
 }
 
 const agentInstances = new Map<string, AgentInstance>();
@@ -127,18 +126,6 @@ async function getOrCreateAgentInstance(agentName: string): Promise<AgentInstanc
   }
 
   const instance = await startOpencodeForAgent(agent);
-  
-  // Create a proxy middleware for this instance
-  instance.proxy = createProxyMiddleware({
-    target: instance.url,
-    changeOrigin: true,
-    pathRewrite: { '^/api': '' },
-    ws: true,
-    onError: (err, req, res) => {
-      console.error(`[agent-proxy][${agent.name}] Proxy error:`, err);
-    }
-  });
-  
   agentInstances.set(agentName, instance);
   return instance;
 }
@@ -199,8 +186,7 @@ async function main() {
 
     // Create Express app for API and proxy
     const app = express();
-    app.use(express.json());
-
+    
     // Add CORS middleware for frontend
     app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', '*');
@@ -211,6 +197,9 @@ async function main() {
       }
       next();
     });
+    
+    // Apply JSON body parser ONLY to /agents/* routes, not /api/*
+    app.use('/agents', express.json());
 
     // API endpoint to list agents
     app.get('/agents/list', (req, res) => {
@@ -265,28 +254,45 @@ async function main() {
       res.json({ success: stopped });
     });
 
-    // Proxy middleware for OpenCode API
-    app.use('/api', async (req, res, next) => {
-      if (!currentAgentName) {
-        return res.status(503).json({ 
-          error: 'No agent selected. Please select an agent first.' 
-        });
-      }
-
-      try {
-        const instance = await getOrCreateAgentInstance(currentAgentName);
-        
-        // Use the existing proxy middleware for this instance
-        if (instance.proxy) {
-          instance.proxy(req, res, next);
-        } else {
-          res.status(500).json({ error: 'Proxy not initialized for this agent' });
+    // Proxy middleware for OpenCode API - dynamically routes to current agent
+    const proxyMiddleware = createProxyMiddleware({
+      target: 'http://localhost:3000', // placeholder, will be overridden by router
+      changeOrigin: true,
+      pathRewrite: (path) => {
+        const newPath = path.replace(/^\/api/, '');
+        console.log(`[agent-proxy] Path rewrite: ${path} -> ${newPath}`);
+        return newPath;
+      },
+      ws: true,
+      secure: false,
+      followRedirects: true,
+      timeout: 300000, // 5 minutes
+      proxyTimeout: 300000,
+      router: async (req) => {
+        // Dynamically determine target based on current agent
+        if (!currentAgentName) {
+          throw new Error('No agent selected');
         }
-      } catch (error: any) {
-        console.error('[agent-proxy] Error proxying request:', error);
-        res.status(500).json({ error: error.message });
+        const instance = agentInstances.get(currentAgentName);
+        if (!instance) {
+          throw new Error(`Agent instance not found: ${currentAgentName}`);
+        }
+        console.log(`[agent-proxy][${currentAgentName}] Routing ${req.method} ${req.url} -> ${instance.url}`);
+        return instance.url;
+      },
+      onError: (err, req, res) => {
+        console.error(`[agent-proxy] Proxy error for ${req.method} ${req.url}:`, err.message);
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Proxy error', details: err.message }));
+        }
+      },
+      onProxyRes: (proxyRes, req, res) => {
+        console.log(`[agent-proxy] Response ${proxyRes.statusCode} for ${req.method} ${req.url}`);
       }
     });
+
+    app.use('/api', proxyMiddleware);
 
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {

@@ -51,3 +51,4 @@ env/
 ehthumbs.db
 webui/node_modules/
 webui.log
+webui.pid
