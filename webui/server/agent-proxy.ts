@@ -25,6 +25,7 @@ interface AgentInstance {
   proc: ChildProcess;
   url: string;
   port: number;
+  proxy?: any; // http-proxy-middleware instance
 }
 
 const agentInstances = new Map<string, AgentInstance>();
@@ -126,6 +127,18 @@ async function getOrCreateAgentInstance(agentName: string): Promise<AgentInstanc
   }
 
   const instance = await startOpencodeForAgent(agent);
+  
+  // Create a proxy middleware for this instance
+  instance.proxy = createProxyMiddleware({
+    target: instance.url,
+    changeOrigin: true,
+    pathRewrite: { '^/api': '' },
+    ws: true,
+    onError: (err, req, res) => {
+      console.error(`[agent-proxy][${agent.name}] Proxy error:`, err);
+    }
+  });
+  
   agentInstances.set(agentName, instance);
   return instance;
 }
@@ -263,21 +276,12 @@ async function main() {
       try {
         const instance = await getOrCreateAgentInstance(currentAgentName);
         
-        // Create a temporary proxy for this request
-        const proxy = createProxyMiddleware({
-          target: instance.url,
-          changeOrigin: true,
-          pathRewrite: { '^/api': '' },
-          ws: true,
-          onError: (err, req, res) => {
-            console.error('[agent-proxy] Proxy error:', err);
-            if (res instanceof express.response.constructor) {
-              res.status(502).json({ error: 'Proxy error', details: err.message });
-            }
-          }
-        });
-
-        proxy(req, res, next);
+        // Use the existing proxy middleware for this instance
+        if (instance.proxy) {
+          instance.proxy(req, res, next);
+        } else {
+          res.status(500).json({ error: 'Proxy not initialized for this agent' });
+        }
       } catch (error: any) {
         console.error('[agent-proxy] Error proxying request:', error);
         res.status(500).json({ error: error.message });
@@ -288,6 +292,9 @@ async function main() {
     const server = app.listen(PORT, () => {
       console.log(`[agent-proxy] Management API listening on http://localhost:${PORT}`);
     });
+    
+    // Increase max listeners to handle multiple proxy connections
+    server.setMaxListeners(50);
 
     // Start default agent if specified
     const defaultAgent = process.env.DEFAULT_AGENT || agents[0]?.name;

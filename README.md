@@ -645,26 +645,189 @@ A modern web interface is included that provides:
 - **Model & Runtime Selection**: Dynamic model picker with session memory
 - **High Performance**: Virtual scrolling handles thousands of messages
 - **Theme Customization**: Choose from 32 DaisyUI themes
+- **Network Access**: Access from any device on your network
 
-### Running the Web UI
+### Quick Start
+
+Use the provided scripts for easy management:
+
+```bash
+# Start the Web UI (includes agent proxy + Vite dev server)
+./start-webui.sh
+
+# Stop the Web UI
+./stop-webui.sh
+```
+
+The web UI will be available at:
+- **Local**: `http://localhost:3002/`
+- **Network**: `http://YOUR_IP:3002/` (auto-detected on startup)
+
+**API Endpoint**: `http://localhost:3001` (agent proxy server)
+
+### Manual Start
+
+If you prefer to start manually:
 
 ```bash
 cd webui
 npm install
-npm run dev
+PORT=3001 npm run dev
 ```
 
-The web UI will start on `http://localhost:3000` (default).
+This starts both the agent proxy server (port 3001) and Vite dev server (port 3002).
 
-**First Time Setup:**
-1. Open the settings (gear icon)
-2. Configure the agents API endpoint (defaults to `http://localhost:3000/agents`)
-3. Click "Load" to fetch available agents from `agents.json`
-4. Select an agent from the dropdown
-5. Configure the API endpoint (defaults to `http://localhost:3000/api`)
-6. Click "Save & Connect"
+### First Time Setup
 
-The web UI will launch an OpenCode instance for the selected agent in its configured directory. Unlike the CLI approach in `agent_manager.py`, the web UI keeps OpenCode running and allows switching between agents without restarting.
+1. **Open the Web UI**: Navigate to `http://localhost:3002/`
+2. **Open Settings**: Click the gear icon (⚙️) in the top right
+3. **Load Agents**: 
+   - The agents API endpoint auto-detects your hostname
+   - Click "Load" to fetch available agents from `agents.json`
+   - All 4 agents should appear in the dropdown
+4. **Select Agent**: Choose an agent (e.g., "family", "devops", "projects", "orchestrator")
+5. **Configure API**: 
+   - The API endpoint also auto-detects your hostname
+   - Default: `http://localhost:3001/api`
+   - Network: `http://YOUR_IP:3001/api`
+6. **Save**: Click "Save" - connection will be verified automatically
+7. **Start Chatting**: The agent's OpenCode instance will start automatically
+
+### How It Works
+
+The web UI architecture consists of:
+
+```
+Browser (port 3002)
+    ↓
+Vite Dev Server (serves SolidJS frontend)
+    ↓
+Agent Proxy Server (port 3001)
+    ├── /agents/* → Agent management API
+    └── /api/* → Proxies to OpenCode instance
+         ↓
+OpenCode Instance (dynamic port per agent)
+    └── Running in agent's directory
+```
+
+**Key Features:**
+- **Multi-Agent Support**: Run multiple OpenCode instances simultaneously
+- **Persistent Sessions**: Unlike CLI, OpenCode instances stay running
+- **Agent Switching**: Switch between agents without restarting
+- **Network Access**: Access from any device on your LAN
+- **Auto-Discovery**: Hostname and ports are auto-detected
+
+### Agent Proxy API
+
+The agent proxy server provides these endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/agents/list` | GET | List all agents from `agents.json` |
+| `/agents/current` | GET | Get currently active agent |
+| `/agents/set` | POST | Set/switch to a different agent |
+| `/agents/stop` | POST | Stop an agent's OpenCode instance |
+| `/api/*` | ALL | Proxy requests to current agent's OpenCode |
+
+**Example Usage:**
+
+```bash
+# List all agents
+curl http://localhost:3001/agents/list
+
+# Get current agent
+curl http://localhost:3001/agents/current
+
+# Switch to devops agent
+curl -X POST http://localhost:3001/agents/set \
+  -H "Content-Type: application/json" \
+  -d '{"agentName": "devops"}'
+
+# Stop an agent
+curl -X POST http://localhost:3001/agents/stop \
+  -H "Content-Type: application/json" \
+  -d '{"agentName": "family"}'
+```
+
+### Configuration
+
+The web UI stores configuration in browser localStorage:
+
+```json
+{
+  "apiEndpoint": "http://localhost:3001/api",
+  "agentsApiEndpoint": "http://localhost:3001/agents",
+  "selectedAgent": "family",
+  "theme": "dark"
+}
+```
+
+**Environment Variables:**
+
+```bash
+# Set custom port for agent proxy (default: 3000)
+PORT=3001 ./start-webui.sh
+
+# Set default agent on startup
+DEFAULT_AGENT=devops PORT=3001 npm run dev
+```
+
+### Troubleshooting
+
+**Web UI won't start:**
+```bash
+# Check if port 3001 is in use
+lsof -i :3001
+
+# View logs
+tail -f webui.log
+
+# Kill and restart
+./stop-webui.sh
+./start-webui.sh
+```
+
+**Agent dropdown not loading:**
+- Check that `agents.json` exists in the root directory
+- Verify agents API endpoint in Settings
+- Open browser DevTools Console to see errors
+- Check if agent proxy is running: `curl http://localhost:3001/agents/list`
+
+**API connection fails:**
+- Verify API endpoint matches your hostname
+- Check firewall allows port 3001
+- Try using `localhost` instead of network IP for local testing
+- Ensure agent proxy server is running
+
+**OpenCode instance won't start:**
+- Check that OpenCode is installed: `which opencode`
+- Verify agent path in `agents.json` exists
+- Check logs: `tail -f webui.log`
+- Manually test: `cd /opt/MyHomeDevops && opencode serve`
+
+### Logs and Debugging
+
+**View live logs:**
+```bash
+tail -f /opt/n8n-copilot-shim/webui.log
+```
+
+**Check running processes:**
+```bash
+ps aux | grep -E "(agent-proxy|opencode serve)"
+```
+
+**Check OpenCode instances:**
+```bash
+# Find which ports OpenCode is listening on
+lsof -i | grep opencode
+```
+
+**Browser DevTools:**
+1. Open DevTools (F12)
+2. Go to Console tab
+3. Look for errors or connection issues
+4. Check Network tab for failed API calls
 
 ### Attribution
 
