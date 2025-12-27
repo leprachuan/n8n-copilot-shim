@@ -1,0 +1,42 @@
+{
+  "name": "n8n-copilot-shim-webui",
+  "version": "0.1.0",
+  "description": "Web interface for n8n-copilot-shim with agent selection",
+  "type": "module",
+  "engines": {
+    "node": ">=25.0.0"
+  },
+  "scripts": {
+    "dev": "tsx server/agent-proxy.ts",
+    "dev:frontend": "vite",
+    "dev:proxy": "tsx server/agent-proxy.ts",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@opencode-ai/sdk": "^0.15.10",
+    "@solidjs/router": "^0.15.3",
+    "@tailwindcss/vite": "^4.1.15",
+    "@tanstack/solid-virtual": "^3.13.12",
+    "marked": "^16.0.0",
+    "prismjs": "^1.30.0",
+    "solid-js": "^1.9.9"
+  },
+  "bin": {
+    "opencode-web-proxy": "server/proxy.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/prismjs": "^1.26.3",
+    "autoprefixer": "^10.4.20",
+    "daisyui": "^5.3.7",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.0",
+    "playwright": "^1.48.2",
+    "tailwindcss": "^4.1.15",
+    "tsx": "^4.16.2",
+    "typescript": "^5.6.2",
+    "vite": "6.4.1",
+    "vite-plugin-solid": "^2.11.9"
+  }
+}

@@ -635,3 +635,38 @@ This project supports multi-agent orchestration with dynamic agent discovery. Se
 ```
 
 All agents are loaded dynamically from `agents.json`, enabling easy expansion and customization.
+
+## Web UI
+
+A modern web interface is included that provides:
+- **Agent Selection**: Choose which agent to work with from the UI
+- **Real-time Messaging**: Live SSE streaming for instant updates
+- **Session Management**: Create, rename, delete, and fork sessions
+- **Model & Runtime Selection**: Dynamic model picker with session memory
+- **High Performance**: Virtual scrolling handles thousands of messages
+- **Theme Customization**: Choose from 32 DaisyUI themes
+
+### Running the Web UI
+
+```bash
+cd webui
+npm install
+npm run dev
+```
+
+The web UI will start on `http://localhost:3000` (default).
+
+**First Time Setup:**
+1. Open the settings (gear icon)
+2. Configure the agents API endpoint (defaults to `http://localhost:3000/agents`)
+3. Click "Load" to fetch available agents from `agents.json`
+4. Select an agent from the dropdown
+5. Configure the API endpoint (defaults to `http://localhost:3000/api`)
+6. Click "Save & Connect"
+
+The web UI will launch an OpenCode instance for the selected agent in its configured directory. Unlike the CLI approach in `agent_manager.py`, the web UI keeps OpenCode running and allows switching between agents without restarting.
+
+### Attribution
+
+The web UI is based on [OpenCode Web](https://github.com/sst/opencode-web) by SST. See [webui/ATTRIBUTION.md](./webui/ATTRIBUTION.md) for details on modifications and credits.
+
