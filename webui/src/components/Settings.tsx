@@ -118,14 +118,8 @@ export default function Settings(props: SettingsProps) {
       const agentData = await agentResponse.json();
       console.log('[Settings] Agent set successfully:', agentData);
 
-      // Then verify the API endpoint works
-      console.log('[Settings] Verifying API endpoint:', url);
-      const client = createClient(url);
-      const { data } = await client.session.list();
-      console.log('[Settings] Session list response:', data);
-      if (!data) {
-        throw new Error("Failed to connect to API - no session data returned");
-      }
+      // Skip API verification for now - let App.tsx handle the connection
+      console.log('[Settings] Skipping API verification, trusting agent setup');
 
       console.log('[Settings] Saving configuration...');
       updateApiEndpoint(url);
