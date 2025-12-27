@@ -21,11 +21,15 @@ interface SettingsProps {
 }
 
 export default function Settings(props: SettingsProps) {
+  // Use current host instead of localhost to support network access
+  const defaultHost = window.location.hostname;
+  const defaultPort = "3001";
+  
   const [endpoint, setEndpoint] = createSignal(
-    config().apiEndpoint || "http://localhost:3001/api",
+    config().apiEndpoint || `http://${defaultHost}:${defaultPort}/api`,
   );
   const [agentsEndpoint, setAgentsEndpoint] = createSignal(
-    config().agentsApiEndpoint || "http://localhost:3001/agents",
+    config().agentsApiEndpoint || `http://${defaultHost}:${defaultPort}/agents`,
   );
   const [selectedTheme, setSelectedTheme] = createSignal<Theme>(config().theme);
   const [error, setError] = createSignal("");
@@ -142,7 +146,7 @@ export default function Settings(props: SettingsProps) {
             <input
               id="settings-agents-endpoint"
               type="text"
-              placeholder="http://localhost:3001/agents"
+              placeholder={`http://${window.location.hostname}:3001/agents`}
               class="input w-full max-w-none"
               value={agentsEndpoint()}
               onInput={(e) => setAgentsEndpoint(e.currentTarget.value)}
@@ -198,7 +202,7 @@ export default function Settings(props: SettingsProps) {
           <input
             id="settings-api-endpoint"
             type="text"
-            placeholder="http://localhost:3001/api"
+            placeholder={`http://${window.location.hostname}:3001/api`}
             class="input w-full max-w-none"
             value={endpoint()}
             onInput={(e) => setEndpoint(e.currentTarget.value)}
