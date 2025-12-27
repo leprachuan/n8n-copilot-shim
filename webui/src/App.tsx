@@ -64,7 +64,7 @@ export default function App() {
       if (!sessionList) throw new Error("Failed to fetch sessions");
 
       const sortedSessions = [...sessionList].sort(
-        (a, b) => b.time.updated - a.time.updated,
+        (a, b) => (b.time?.updated || 0) - (a.time?.updated || 0),
       );
       setSessions(sortedSessions);
 

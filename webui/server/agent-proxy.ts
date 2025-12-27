@@ -304,7 +304,7 @@ async function main() {
 
     // Start Vite dev server
     const env = {
-      VITE_API_DEFAULT: '/api',
+      // Don't set VITE_API_DEFAULT - let the frontend detect the correct URL dynamically
       VITE_AGENTS_API: `http://localhost:${PORT}/agents`,
     } as Record<string, string>;
     

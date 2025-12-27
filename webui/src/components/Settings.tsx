@@ -87,6 +87,8 @@ export default function Settings(props: SettingsProps) {
     const agentsUrl = agentsEndpoint().trim();
     const agent = selectedAgent();
 
+    console.log('[Settings] handleSave called with:', { url, agentsUrl, agent });
+
     if (!url) {
       setError("API endpoint is required");
       return;
@@ -99,31 +101,43 @@ export default function Settings(props: SettingsProps) {
 
     try {
       // First, set the selected agent on the backend
+      console.log('[Settings] Setting agent on backend:', `${agentsUrl}/set`);
       const agentResponse = await fetch(`${agentsUrl}/set`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentName: agent })
       });
 
+      console.log('[Settings] Agent set response status:', agentResponse.status);
       if (!agentResponse.ok) {
-        throw new Error('Failed to set agent on backend');
+        const errorText = await agentResponse.text();
+        console.error('[Settings] Agent set failed:', errorText);
+        throw new Error(`Failed to set agent on backend: ${errorText}`);
       }
+
+      const agentData = await agentResponse.json();
+      console.log('[Settings] Agent set successfully:', agentData);
 
       // Then verify the API endpoint works
+      console.log('[Settings] Verifying API endpoint:', url);
       const client = createClient(url);
       const { data } = await client.session.list();
+      console.log('[Settings] Session list response:', data);
       if (!data) {
-        throw new Error("Failed to connect");
+        throw new Error("Failed to connect to API - no session data returned");
       }
 
+      console.log('[Settings] Saving configuration...');
       updateApiEndpoint(url);
       updateAgentsApiEndpoint(agentsUrl);
       updateSelectedAgent(agent);
       updateTheme(selectedTheme());
       hasSaved = true;
       setError("");
+      console.log('[Settings] Configuration saved, reloading...');
       window.location.reload();
     } catch (e: any) {
+      console.error('[Settings] Save failed:', e);
       setError(
         e.message || "Failed to connect to API endpoint. Please check the URL and try again.",
       );
