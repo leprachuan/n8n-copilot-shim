@@ -49,3 +49,5 @@ env/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+webui/node_modules/
+webui.log

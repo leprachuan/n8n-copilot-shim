@@ -22,10 +22,10 @@ interface SettingsProps {
 
 export default function Settings(props: SettingsProps) {
   const [endpoint, setEndpoint] = createSignal(
-    config().apiEndpoint || "http://localhost:3000/api",
+    config().apiEndpoint || "http://localhost:3001/api",
   );
   const [agentsEndpoint, setAgentsEndpoint] = createSignal(
-    config().agentsApiEndpoint || "http://localhost:3000/agents",
+    config().agentsApiEndpoint || "http://localhost:3001/agents",
   );
   const [selectedTheme, setSelectedTheme] = createSignal<Theme>(config().theme);
   const [error, setError] = createSignal("");
@@ -44,20 +44,26 @@ export default function Settings(props: SettingsProps) {
     if (!url) return;
 
     setLoadingAgents(true);
+    setError("");
     try {
+      console.log('[Settings] Loading agents from:', `${url}/list`);
       const response = await fetch(`${url}/list`);
+      console.log('[Settings] Response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to fetch agents');
+        throw new Error(`Failed to fetch agents: ${response.statusText}`);
       }
       const data = await response.json();
+      console.log('[Settings] Loaded agents:', data.agents);
       setAgents(data.agents || []);
       
       // Set first agent as default if none selected
       if (!selectedAgent() && data.agents.length > 0) {
         setSelectedAgent(data.agents[0].name);
+        console.log('[Settings] Auto-selected first agent:', data.agents[0].name);
       }
-    } catch (e) {
-      console.error('Failed to load agents:', e);
+    } catch (e: any) {
+      console.error('[Settings] Failed to load agents:', e);
+      setError(`Failed to load agents: ${e.message}`);
     } finally {
       setLoadingAgents(false);
     }
@@ -136,7 +142,7 @@ export default function Settings(props: SettingsProps) {
             <input
               id="settings-agents-endpoint"
               type="text"
-              placeholder="http://localhost:3000/agents"
+              placeholder="http://localhost:3001/agents"
               class="input w-full max-w-none"
               value={agentsEndpoint()}
               onInput={(e) => setAgentsEndpoint(e.currentTarget.value)}
@@ -192,7 +198,7 @@ export default function Settings(props: SettingsProps) {
           <input
             id="settings-api-endpoint"
             type="text"
-            placeholder="http://localhost:3000/api"
+            placeholder="http://localhost:3001/api"
             class="input w-full max-w-none"
             value={endpoint()}
             onInput={(e) => setEndpoint(e.currentTarget.value)}

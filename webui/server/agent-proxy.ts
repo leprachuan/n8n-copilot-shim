@@ -188,6 +188,17 @@ async function main() {
     const app = express();
     app.use(express.json());
 
+    // Add CORS middleware for frontend
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
     // API endpoint to list agents
     app.get('/agents/list', (req, res) => {
       res.json({ agents });
